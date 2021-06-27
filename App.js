@@ -5,7 +5,7 @@ import { Card, Surface, Title, TextInput } from 'react-native-paper';
 import { AntDesign } from '@expo/vector-icons';
 import ModalView from './src/components/ModalView';
 
-const url = 'https://ae06fec9c1a7.ngrok.io/posts'
+const url = 'https://ad8edbb93b11.ngrok.io/posts'
 
 export default function App() {
   const [data, setData] = useState([]);
@@ -20,7 +20,7 @@ export default function App() {
     await fetch(url)
       .then((res) => res.json())
       .then(resJson => {
-        // console.log('data', resJson)
+        console.log('data', resJson)
         setData(resJson);
       }).catch(e => { console.log(e) })
     setLoading(false)
@@ -60,7 +60,7 @@ export default function App() {
       })
     }).then((res) => res.json())
       .then(resJson => {
-        console.log('post:', resJson)
+        console.log('updated:', resJson)
         getPosts()
         setVisible(false);
         setAuthor('')
