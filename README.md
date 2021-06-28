@@ -21,3 +21,9 @@ then copy ngrok tunnel forwarding url and past in App.js
 url = "https://ae06fec9c1a7.ngrok.io" + 'route' //route(YOUR_DATABASE_OBJECT_KEY)
 //LIKE -> https://ae06fec9c1a7.ngrok.io/posts
 ```
+
+then run app
+```
+expo start
+```
+then select android/ios device to run the app from options
