@@ -1,11 +1,17 @@
 import { StatusBar, } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Card, Surface, Title, TextInput } from 'react-native-paper';
-import { AntDesign } from '@expo/vector-icons';
+import { FlatList, StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, SafeAreaView, Platform } from 'react-native';
+import { Surface, Title, TextInput } from 'react-native-paper';
 import ModalView from './src/components/ModalView';
+import PostCardItem from './src/components/PostCardItem';
 
-const url = 'https://ad8edbb93b11.ngrok.io/posts'
+// update this url -> "<new_ngrok_host_url>/posts"
+const url = 'https://5a88-2409-4043-4e81-648d-a145-18e8-b2af-fdae.ngrok.io/posts'
+
+const headers = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+};
 
 export default function App() {
   const [data, setData] = useState([]);
@@ -19,20 +25,17 @@ export default function App() {
     setLoading(true)
     await fetch(url)
       .then((res) => res.json())
-      .then(resJson => {
-        console.log('data', resJson)
-        setData(resJson);
-      }).catch(e => { console.log(e) })
+      .then((res) => {
+        setData(res);
+      })
+      .catch(e => console.log(e))
     setLoading(false)
   }
 
   const addPost = (title, author) => {
     fetch(url, {
       method: "POST",
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         "author": author,
         "title": title,
@@ -40,20 +43,14 @@ export default function App() {
     }).then((res) => res.json())
       .then(resJson => {
         console.log('post:', resJson)
-        getPosts()
-        setVisible(false);
-        setAuthor('')
-        setTitle('')
+        updatePost()
       }).catch(e => { console.log(e) })
   }
 
   const editPost = (postId, title, author) => {
     fetch(url + `/${postId}`, {
       method: "PUT",
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         "author": author,
         "title": title,
@@ -61,26 +58,27 @@ export default function App() {
     }).then((res) => res.json())
       .then(resJson => {
         console.log('updated:', resJson)
-        getPosts()
-        setVisible(false);
-        setAuthor('')
-        setTitle('')
-        setPostId(0)
+        updatePost()
       }).catch(e => { console.log(e) })
   }
 
   const deletePost = (postId) => {
     fetch(url + `/${postId}`, {
       method: "DELETE",
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      }
+      headers,
     }).then((res) => res.json())
       .then(resJson => {
         console.log('delete:', resJson)
         getPosts()
       }).catch(e => { console.log(e) })
+  }
+
+  const updatePost = () => {
+    getPosts()
+    setVisible(false);
+    setAuthor('')
+    setTitle('')
+    setPostId(0)
   }
 
   const edit = (id, title, author) => {
@@ -94,47 +92,28 @@ export default function App() {
     getPosts();
   }, [])
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="steelblue" />
-      </View>
-    )
-  }
-
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="auto" />
-      <Surface style={{ marginTop: 24, padding: 16, elevation: 2, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Surface style={styles.header}>
         <Title>Posts</Title>
-        <TouchableOpacity onPress={() => setVisible(true)}>
-          <Text style={{ padding: 10, borderRadius: 20, backgroundColor: 'steelblue', color: 'white' }}>Add Post</Text>
+        <TouchableOpacity style={styles.button} onPress={() => setVisible(true)}>
+          <Text style={styles.buttonText}>Add Post</Text>
         </TouchableOpacity>
       </Surface>
       <FlatList
         data={data}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => {
-          return (
-            <Card style={{ padding: 16, margin: 16, elevation: 4, borderRadius: 8 }}>
-              <View style={styles.rowView}>
-                <View>
-                  <Text style={{ fontSize: 18 }}>{item.title}</Text>
-                  <Text>Author: {item.author}</Text>
-                </View>
-                <View style={styles.rowView}>
-                  <TouchableOpacity style={{ marginHorizontal: 16 }}
-                    onPress={() => edit(item.id, item.title, item.author)}>
-                    <AntDesign name="edit" size={24} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => deletePost(item.id)}>
-                    <AntDesign name="delete" size={24} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </Card>
-          )
-        }}
+        keyExtractor={(item, index) => item.id + index.toString()}
+        refreshing={loading}
+        onRefresh={getPosts}
+        renderItem={({ item }) => (
+          <PostCardItem
+            title={item.title}
+            author={item.author}
+            onEdit={() => edit(item.id, item.title, item.author)}
+            onDelete={() => deletePost(item.id)}
+          />
+        )}
       />
       <ModalView
         visible={visible}
@@ -162,7 +141,7 @@ export default function App() {
           mode="outlined"
         />
       </ModalView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -172,7 +151,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     justifyContent: 'center',
   },
-  rowView: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-  }
+  header: {
+    marginTop: Platform.OS === 'android' ? 24 : 0,
+    padding: 16,
+    elevation: 2,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  button: {
+    padding: 10,
+    borderRadius: 20,
+    backgroundColor: 'steelblue',
+  },
+  buttonText: {
+    color: 'white'
+  },
 });
